@@ -264,6 +264,40 @@ class IsaacJointMirror:
                 f"robot prim not found in Isaac Sim: {ROBOT_PRIM_PATH}"
             )
 
+        # 让 gripper 左右两指互不碰撞：把两指的 collider 放进一个 PhysicsCollisionGroup
+        # 并把 group 的 filteredGroups 自引用——USD 的 PhysicsCollisionGroup 机制
+        # 是"colliders 列表 ∩ filteredGroups 集合内的对象不互相接触"。同组内成员之
+        # 间不发生接触。arm 6 个 link 之间不受影响。
+        from pxr import Sdf, UsdPhysics
+        from isaacsim.core.utils.stage import get_current_stage
+
+        stage = get_current_stage()
+        collision_group_path = Sdf.Path("/World/GripperFingerNoCollideGroup")
+        collision_group = UsdPhysics.CollisionGroup.Define(stage, collision_group_path)
+        colliders_api = collision_group.GetCollidersCollectionAPI()
+        if colliders_api is None:
+            colliders_api = UsdPhysics.CollectionAPI.Apply(collision_group.GetPrim(), "colliders")
+        colliders_rel = colliders_api.GetIncludesRel()
+        if colliders_rel is None:
+            colliders_rel = colliders_api.CreateIncludesRel()
+        finger_collider_paths = (
+            f"{ROBOT_PRIM_PATH}/Geometry/base_link/link1/link2/link3/link4/link5/link6"
+            f"/gripper_end/gripper_left/gripper_left",
+            f"{ROBOT_PRIM_PATH}/Geometry/base_link/link1/link2/link3/link4/link5/link6"
+            f"/gripper_end/gripper_right/gripper_right",
+        )
+        for finger_collider_path in finger_collider_paths:
+            if stage.GetPrimAtPath(finger_collider_path).IsValid():
+                colliders_rel.AddTarget(Sdf.Path(finger_collider_path))
+        filtered_groups_rel = collision_group.GetFilteredGroupsRel()
+        if filtered_groups_rel is None:
+            filtered_groups_rel = collision_group.CreateFilteredGroupsRel()
+        filtered_groups_rel.AddTarget(collision_group_path)
+        print(
+            f"[recv-setup] PhysicsCollisionGroup 已创建于 {collision_group_path}，"
+            f"包含 colliders: {colliders_rel.GetTargets()}"
+        )
+
         self.articulation = SingleArticulation(prim_path=ROBOT_PRIM_PATH, name="rebotarm_live")
         self.world.scene.add(self.articulation)
         self.world.reset()

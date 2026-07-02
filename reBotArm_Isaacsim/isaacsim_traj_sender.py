@@ -77,6 +77,7 @@ DEFAULT_TRAJ_DURATION = 2.0         # 默认轨迹时长（秒）
 DEFAULT_SPEED_SCALE = 1.0           # 速度比例：1.0 = 使用默认时长，>1 更快
 DEFAULT_JOINT_TOLERANCE = 1e-3      # 直发 q 模式下，目标与当前差距过小时跳过规划
 DEFAULT_NULL_GAIN = 0.05            # CLIK 零空间梯度增益（关节限位避让）
+DEFAULT_GRIPPER_MAX_OPENING_M = 0.045  # 夹爪完全打开时每指的滑动距离（米），与 USD physics.usda 的 upperLimit 对齐
 
 _running = True
 
@@ -135,11 +136,15 @@ class TrajSender:
     # ---------- UDP 发送 ----------
 
     def _send(self, q_rad: np.ndarray, gripper: float) -> None:
+        # gripper 入参约定：0~DEFAULT_GRIPPER_MAX_OPENING_M 米。如果调用方传入
+        # 的值 > DEFAULT_GRIPPER_MAX_OPENING_M，会被解释为旧版"0~1 当米"的错误
+        # 习惯用法，按 USD 行程上限裁剪到合理区间。
+        gripper_m = float(np.clip(gripper, 0.0, DEFAULT_GRIPPER_MAX_OPENING_M))
         payload = {
             "sequence": self.sequence,
             "timestamp": time.time(),
             "joint_positions": q_rad.tolist(),
-            "gripper_position": float(np.clip(gripper, 0.0, 1.0)),
+            "gripper_position": gripper_m,
         }
         packet = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.socket.sendto(packet, (self.host, self.port))
@@ -321,8 +326,17 @@ class TrajSender:
 
         if line.startswith("gripper ") or line.startswith("gripper\t"):
             ratio = float(line.split(None, 1)[1])
-            self.gripper = float(np.clip(ratio, 0.0, 1.0))
-            return f"夹爪比例已更新为 {self.gripper:.2f}（下一次关节命令生效）"
+            ratio = float(np.clip(ratio, 0.0, 1.0))
+            gripper_m = ratio * DEFAULT_GRIPPER_MAX_OPENING_M
+            self.gripper = gripper_m
+            # 立即广播一帧；既解决"等下次规划才生效"的延迟，也让"单独
+            # 更新夹爪"的命令在不动 arm 时也能动 gripper。
+            # 取上一次 joint 目标 q 的前 6 个当作静止参考（不触发任何臂规划）。
+            self._send(self.q_prev[:ARM_JOINT_COUNT], gripper_m)
+            return (
+                f"夹爪比例已更新为 {ratio:.2f} "
+                f"→ {gripper_m * 1000:.1f} mm（已立即广播）"
+            )
 
         if line.strip() == "resync":
             q_new = self._request_feedback()
@@ -376,7 +390,7 @@ class TrajSender:
         print("  输入位姿 (每行一条):")
         print("    x y z                       (位置, 米; 姿态保持当前)")
         print("    x y z r p y                 (位置+姿态, 米/度)")
-        print("    gripper <0~1>                (单独更新夹爪)")
+        print("    gripper <0~1>                (单独更新夹爪, 立即广播)")
         print("    q j1 j2 j3 j4 j5 j6         (直接发关节角, 度)")
         print("    speed <scale>                (调整规划时长比例, 默认 1.0)")
         print("    resync                       (重新从仿真端读取当前关节角)")

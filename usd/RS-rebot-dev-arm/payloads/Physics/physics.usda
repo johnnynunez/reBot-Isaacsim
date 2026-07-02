@@ -186,9 +186,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 100
             float drive:angular:physics:maxForce = 36
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1>
@@ -208,9 +208,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 100
             float drive:angular:physics:maxForce = 36
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             float drive:angular:physics:targetPosition = 0
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1>
@@ -231,9 +231,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 100
             float drive:angular:physics:maxForce = 36
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             float drive:angular:physics:targetPosition = 0
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2>
@@ -254,9 +254,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 100
             float drive:angular:physics:maxForce = 14
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4>
@@ -276,9 +276,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 100
             float drive:angular:physics:maxForce = 14
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5>
@@ -298,9 +298,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 100
             float drive:angular:physics:maxForce = 14
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5/link6>
@@ -322,7 +322,7 @@ over "tn__00armrs_asmv3_hJ6D"
         {
             float drive:linear:physics:damping = 10
             float drive:linear:physics:maxForce = 500
-            float drive:linear:physics:stiffness = 100
+            float drive:linear:physics:stiffness = 50
             float drive:linear:physics:targetPosition = 0
             float drive:linear:physics:targetVelocity = 0
             uniform token drive:linear:physics:type = "force"
@@ -348,7 +348,7 @@ over "tn__00armrs_asmv3_hJ6D"
         {
             float drive:linear:physics:damping = 10
             float drive:linear:physics:maxForce = 500
-            float drive:linear:physics:stiffness = 100
+            float drive:linear:physics:stiffness = 50
             float drive:linear:physics:targetPosition = 0
             float drive:linear:physics:targetVelocity = 0
             uniform token drive:linear:physics:type = "force"
