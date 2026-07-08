@@ -186,9 +186,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 75
             float drive:angular:physics:maxForce = 36
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1>
@@ -208,9 +208,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 96
             float drive:angular:physics:maxForce = 36
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1500
             float drive:angular:physics:targetPosition = 0
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1>
@@ -231,9 +231,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 76
             float drive:angular:physics:maxForce = 36
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 1000
             float drive:angular:physics:targetPosition = 0
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2>
@@ -254,9 +254,9 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 20
             float drive:angular:physics:maxForce = 14
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 200
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4>
@@ -276,7 +276,7 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
         )
         {
-            float drive:angular:physics:damping = 10
+            float drive:angular:physics:damping = 15
             float drive:angular:physics:maxForce = 14
             float drive:angular:physics:stiffness = 100
             uniform token physics:axis = "Z"
@@ -300,7 +300,7 @@ over "tn__00armrs_asmv3_hJ6D"
         {
             float drive:angular:physics:damping = 10
             float drive:angular:physics:maxForce = 14
-            float drive:angular:physics:stiffness = 100
+            float drive:angular:physics:stiffness = 80
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5/link6>
@@ -320,9 +320,13 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:linear", "PhysicsJointStateAPI:linear"]
         )
         {
-            float drive:linear:physics:damping = 10
+            float drive:linear:physics:damping = 100
             float drive:linear:physics:maxForce = 500
-            float drive:linear:physics:stiffness = 20
+            float drive:linear:physics:stiffness = 2000
+            float drive:linear:physics:targetPosition = 0
+            float drive:linear:physics:targetVelocity = 0
+            uniform token drive:linear:physics:type = "force"
+            float jointFriction = 0
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5/link6/gripper_end>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5/link6/gripper_end/gripper_left>
@@ -332,7 +336,7 @@ over "tn__00armrs_asmv3_hJ6D"
             quatf physics:localRot1 = (1, 0, 0, 0)
             float physics:lowerLimit = 0
             float physics:upperLimit = 0.045
-            float state:linear:physics:position = 0.00005259377
+            float state:linear:physics:position = 0
             float state:linear:physics:velocity = 0
             custom float urdf:limit:effort = 500
             custom float urdf:limit:velocity = 10
@@ -342,9 +346,13 @@ over "tn__00armrs_asmv3_hJ6D"
             prepend apiSchemas = ["PhysicsDriveAPI:linear", "PhysicsJointStateAPI:linear"]
         )
         {
-            float drive:linear:physics:damping = 10
+            float drive:linear:physics:damping = 100
             float drive:linear:physics:maxForce = 500
-            float drive:linear:physics:stiffness = 20
+            float drive:linear:physics:stiffness = 2000
+            float drive:linear:physics:targetPosition = 0
+            float drive:linear:physics:targetVelocity = 0
+            uniform token drive:linear:physics:type = "force"
+            float jointFriction = 0
             uniform token physics:axis = "Z"
             custom rel physics:body0 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5/link6/gripper_end>
             custom rel physics:body1 = </tn__00armrs_asmv3_hJ6D/Geometry/base_link/link1/link2/link3/link4/link5/link6/gripper_end/gripper_right>
@@ -354,7 +362,7 @@ over "tn__00armrs_asmv3_hJ6D"
             quatf physics:localRot1 = (1, 0, 0, 0)
             float physics:lowerLimit = 0
             float physics:upperLimit = 0.045
-            float state:linear:physics:position = 0.000026604852
+            float state:linear:physics:position = 0
             float state:linear:physics:velocity = 0
             custom float urdf:limit:effort = 500
             custom float urdf:limit:velocity = 10
