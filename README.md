@@ -1,6 +1,6 @@
 # reBot-Isaacsim
 
-reBotArm 真实机械臂与 NVIDIA Isaac Sim 仿真环境的实时镜像系统。通过 UDP JSON 将真实机械臂的关节角（支持重力补偿手动掰动）与夹爪状态实时同步到 Isaac Sim 仿真场景。
+reBot-Isaacsim 是一个专为 reBotArm 设计的 NVIDIA Isaac Sim 仿真项目。它利用 Isaac Sim 的高保真物理引擎，在虚拟环境中精确复现机械臂的运动学特性与夹爪联动逻辑，为控制算法开发、轨迹规划验证及通信协议测试提供独立的纯仿真环境。
 
 ## 功能组件概览
 
