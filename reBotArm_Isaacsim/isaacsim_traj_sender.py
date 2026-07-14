@@ -72,8 +72,8 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5005
 DEFAULT_FEEDBACK_PORT = 5006
 DEFAULT_FEEDBACK_TIMEOUT = 5.0          # 等待反馈的超时（秒）
-DEFAULT_BROADCAST_HZ = 100.0        # 轨迹点 UDP 广播频率
-DEFAULT_TRAJ_DURATION = 2.0         # 默认轨迹时长（秒）
+DEFAULT_BROADCAST_HZ = 1000.0        # 轨迹点 UDP 广播频率
+DEFAULT_TRAJ_DURATION = 3.0         # 默认轨迹时长（秒）
 DEFAULT_SPEED_SCALE = 1.0           # 速度比例：1.0 = 使用默认时长，>1 更快
 DEFAULT_JOINT_TOLERANCE = 1e-3      # 直发 q 模式下，目标与当前差距过小时跳过规划
 DEFAULT_NULL_GAIN = 0.05            # CLIK 零空间梯度增益（关节限位避让）
