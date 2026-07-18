@@ -1,0 +1,153 @@
+{
+ "metric": "generalized gravity torque g(q) at rest [N.m]",
+ "reference": "pinocchio (== Isaac PhysX+Newton droop == real arm PD-sweep, 3 digits)",
+ "engines": {
+  "newton_standalone": "1.4.0",
+  "mujoco": "3.10.0",
+  "pinocchio": "3.4.0"
+ },
+ "poses": {
+  "home": {
+   "pinocchio": [
+    0.0,
+    -1.5898,
+    -6.7186,
+    -1.9555,
+    0.0,
+    0.0008
+   ],
+   "mujoco": [
+    0.0,
+    -1.5898,
+    -6.7186,
+    -1.9555,
+    0.0,
+    0.0008
+   ],
+   "newton_standalone": [
+    0.0,
+    -1.5898,
+    -6.7186,
+    -1.9555,
+    0.0,
+    0.0008
+   ],
+   "newton_vs_ref_max": 1.07e-06,
+   "mujoco_vs_ref_max": 5.88e-06
+  },
+  "L": {
+   "pinocchio": [
+    -0.0,
+    -0.9619,
+    -5.3591,
+    -1.7237,
+    0.0003,
+    0.0008
+   ],
+   "mujoco": [
+    0.0,
+    -0.9619,
+    -5.3592,
+    -1.7237,
+    0.0003,
+    0.0008
+   ],
+   "newton_standalone": [
+    0.0,
+    -0.9619,
+    -5.3592,
+    -1.7237,
+    0.0003,
+    0.0008
+   ],
+   "newton_vs_ref_max": 2.46e-06,
+   "mujoco_vs_ref_max": 5.65e-06
+  },
+  "reach": {
+   "pinocchio": [
+    0.0,
+    3.6138,
+    -6.5758,
+    -1.4371,
+    0.2749,
+    0.0006
+   ],
+   "mujoco": [
+    0.0,
+    3.6138,
+    -6.5758,
+    -1.4371,
+    0.2749,
+    0.0006
+   ],
+   "newton_standalone": [
+    0.0,
+    3.6138,
+    -6.5758,
+    -1.4371,
+    0.2749,
+    0.0006
+   ],
+   "newton_vs_ref_max": 1.12e-06,
+   "mujoco_vs_ref_max": 4.42e-06
+  },
+  "wrist": {
+   "pinocchio": [
+    0.0,
+    -0.2044,
+    -4.9194,
+    -1.6647,
+    0.0626,
+    0.0008
+   ],
+   "mujoco": [
+    0.0,
+    -0.2044,
+    -4.9194,
+    -1.6647,
+    0.0626,
+    0.0008
+   ],
+   "newton_standalone": [
+    0.0,
+    -0.2044,
+    -4.9194,
+    -1.6647,
+    0.0626,
+    0.0008
+   ],
+   "newton_vs_ref_max": 1.62e-06,
+   "mujoco_vs_ref_max": 3.66e-06
+  },
+  "twist": {
+   "pinocchio": [
+    -0.0,
+    -9.9664,
+    2.7,
+    1.1117,
+    0.5565,
+    0.0005
+   ],
+   "mujoco": [
+    0.0,
+    -9.9664,
+    2.7,
+    1.1117,
+    0.5565,
+    0.0005
+   ],
+   "newton_standalone": [
+    0.0,
+    -9.9664,
+    2.7,
+    1.1117,
+    0.5565,
+    0.0005
+   ],
+   "newton_vs_ref_max": 1.59e-06,
+   "mujoco_vs_ref_max": 2.05e-06
+  }
+ },
+ "newton_standalone_max_diff": 2.46e-06,
+ "mujoco_max_diff": 5.88e-06
+}

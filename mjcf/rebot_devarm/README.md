@@ -5,7 +5,15 @@ MuJoCo model of the Seeed reBot DevArm, RobStride build (6 revolute joints +
 [`urdf/00-arm-rs_asm-v3`](../../urdf/00-arm-rs_asm-v3) so it stays in lockstep
 with the URDF and the Isaac Sim USD asset.
 
-<p float="left"><img src="rebot_devarm.png" width="400"></p>
+<p float="left">
+  <img src="doc_images/mujoco.png" width="260">
+  <img src="doc_images/isaac_physx.png" width="260">
+  <img src="doc_images/isaac_newton.png" width="260">
+</p>
+
+*Same arm, same raised pose across three engines — MuJoCo, Isaac Sim PhysX,
+Isaac Sim Newton. The lime covers / black motors / aluminium are recovered
+from the mesh filenames (the URDF stores every visual as flat grey).*
 
 ## Files
 

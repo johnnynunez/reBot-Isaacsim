@@ -1,112 +1,148 @@
-"""Build the menagerie-style rebot_devarm.xml from the urdf-to-mjcf output.
+"""Build the menagerie-style rebot_devarm.xml.
 
-Base: `urdf-to-mjcf <urdf> -ct convex_hull` (discoverse-dev/urdf-to-mjcf) —
-gives per-link bodies with the exact URDF inertials (gripper_end kept as a
-separate welded body, so no fixed-joint inertial-merge bug) plus coacd convex
-collision meshes. This script layers the menagerie conventions on top:
+Body tree, joints, inertials and coacd convex COLLISION come from
+`urdf-to-mjcf` (discoverse-dev/urdf-to-mjcf, -ct convex_hull) on the URDF —
+every link keeps its exact URDF inertial and gripper_end stays a separate
+welded body (so the gripper_end fixed-joint inertial-merge bug MuJoCo's own
+importer hits is avoided).
 
-  - fixed base (drop the freejoint), base_link inertial from the URDF
-  - <option> integrator, <default> joint armature/damping + actuator classes
-  - position actuators with the validated PD gains (rs06 / rs00 / gripper)
-  - home + raised keyframes
-  - meshdir=assets, flat mesh paths
+On top of that this script authors:
+  - fixed base + base_link inertial
+  - <option>, joint armature/damping defaults, position actuators (PD gains),
+    home/raised keyframes
+  - per-part COLOURED visual geoms parsed straight from the URDF <visual>
+    list (the URDF stores every visual as flat grey; the real arm's lime
+    covers / black motors / aluminium are recovered from the mesh filenames:
+    *_green + gripper fingers -> lime, motor_* / *_black -> black, else grey).
 
-Gravity parity verified: MuJoCo qfrc_bias vs Pinocchio g(q) < 1e-5 N.m.
-Run: python build_mjcf.py   (writes rebot_devarm.xml next to it)
+Gravity parity: MuJoCo qfrc_bias vs Pinocchio g(q) < 1e-5 N.m.
+Run: python build_mjcf.py
 """
-import re
+import math
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
 HERE = Path(__file__).resolve().parent
 SRC = "/tmp/u2m/rebot.xml"
+URDF = HERE.parents[1] / "urdf/00-arm-rs_asm-v3/urdf/00-arm-rs_asm-v3.urdf"
+
+
+def colour_of(mesh_file: str) -> str:
+    n = mesh_file.lower()
+    if "_green" in n or n.startswith("gripper_left") or n.startswith("gripper_right"):
+        return "lime"
+    if "motor" in n or "_black" in n:
+        return "black"
+    return "alum"
+
+
+def rpy_to_quat(r, p, y):
+    cy, sy = math.cos(y * 0.5), math.sin(y * 0.5)
+    cp, sp = math.cos(p * 0.5), math.sin(p * 0.5)
+    cr, sr = math.cos(r * 0.5), math.sin(r * 0.5)
+    return (f"{cr*cp*cy + sr*sp*sy:.8g} {sr*cp*cy - cr*sp*sy:.8g} "
+            f"{cr*sp*cy + sr*cp*sy:.8g} {cr*cp*sy - sr*sp*cy:.8g}")
+
+
+# URDF visuals per link: (mesh_name, pos, quat, colour)
+urdf = ET.parse(URDF).getroot()
+link_visuals = {}
+mesh_names = set()
+for link in urdf.findall("link"):
+    vs = []
+    for v in link.findall("visual"):
+        g = v.find("geometry/mesh")
+        if g is None:
+            continue
+        mf = g.get("filename").split("/")[-1]
+        o = v.find("origin")
+        xyz = o.get("xyz", "0 0 0") if o is not None else "0 0 0"
+        rpy = [float(x) for x in ((o.get("rpy", "0 0 0").split()) if o is not None else ["0", "0", "0"])]
+        name = mf.rsplit(".", 1)[0]
+        mesh_names.add((name, mf))
+        vs.append((name, xyz, rpy_to_quat(*rpy), colour_of(mf)))
+    link_visuals[link.get("name")] = vs
 
 tree = ET.parse(SRC)
 root = tree.getroot()
 root.set("model", "rebot_devarm")
 
+comp = root.find("compiler")
+comp.set("meshdir", "assets")
+comp.set("autolimits", "true")
+root.insert(list(root).index(comp) + 1,
+            ET.Element("option", {"integrator": "implicitfast", "cone": "elliptic", "impratio": "10"}))
+
 wb = root.find("worldbody")
 base = wb.find("body[@name='base_link']")
-
-# 1. fixed base: drop the freejoint
 fj = base.find("freejoint")
 if fj is not None:
     base.remove(fj)
-
-# 2. base_link inertial from URDF (welded, but keep the model mass correct)
-ine = ET.Element("inertial", {
-    "pos": "2.87642e-06 -0.000122302 0.0243376", "mass": "1.1774",
-    "fullinertia": "0.0013304 0.00213119 0.00275877 1e-08 0 0"})
-base.insert(0, ine)
-
-# 3. drop inline floor / light (go to scene.xml)
+base.insert(0, ET.Element("inertial", {"pos": "2.87642e-06 -0.000122302 0.0243376",
+            "mass": "1.1774", "fullinertia": "0.0013304 0.00213119 0.00275877 1e-08 0 0"}))
 for g in wb.findall("geom"):
     wb.remove(g)
 for l in wb.findall("light"):
     wb.remove(l)
 
-# 4. flatten mesh file paths to meshdir=assets
-for mesh in root.iter("mesh"):
-    f = mesh.get("file")
-    mesh.set("file", f.split("/")[-1])
-comp = root.find("compiler")
-comp.set("meshdir", "assets")
-comp.set("autolimits", "true")
+# replace merged single-colour visuals with per-part coloured URDF visuals
+for body in root.iter("body"):
+    name = body.get("name")
+    for g in list(body.findall("geom")):
+        cls = g.get("class")
+        mesh = g.get("mesh") or ""
+        if cls == "visual" or "merged" in mesh or g.get("material") == "default_material":
+            body.remove(g)
+    for meshname, pos, quat, col in link_visuals.get(name, []):
+        body.append(ET.Element("geom", {"type": "mesh", "class": "visual",
+                    "material": col, "mesh": meshname, "pos": pos, "quat": quat}))
 
-# 5. option
-opt = ET.Element("option", {"integrator": "implicitfast", "cone": "elliptic", "impratio": "10"})
-root.insert(list(root).index(comp) + 1, opt)
+# assets: flatten collision paths, add per-part visual meshes, colour materials
+asset = root.find("asset")
+for m in asset.iter("mesh"):
+    m.set("file", m.get("file").split("/")[-1])
+existing = {m.get("name") for m in asset.iter("mesh")}
+for name, mf in sorted(mesh_names):
+    if name not in existing:
+        asset.append(ET.Element("mesh", {"name": name, "file": mf}))
+for m in list(asset.findall("material")):
+    asset.remove(m)
+for nm, rgba in {"black": "0.05 0.05 0.06 1", "lime": "0.72 0.85 0.20 1",
+                 "alum": "0.78 0.78 0.80 1"}.items():
+    asset.insert(0, ET.Element("material", {"name": nm, "rgba": rgba,
+                 "specular": "0.4", "shininess": "0.3"}))
+for el in list(asset):
+    if (el.tag == "texture" and el.get("type") == "skybox") or el.get("name") == "groundplane":
+        asset.remove(el)
 
-# 6. defaults: add joint dynamics + actuator classes under class "robot"
-CLASS = {  # joint -> (actuator class, forcerange, kp, kv, joint damping)
-    "joint1": ("rs06", 36, 900, 60, 5), "joint2": ("rs06", 36, 900, 60, 5),
-    "joint3": ("rs06", 36, 900, 60, 5), "joint4": ("rs00", 14, 120, 10, 2),
-    "joint5": ("rs00", 14, 120, 10, 2), "joint6": ("rs00", 14, 120, 10, 2),
-    "joint_left": ("gripper", 500, 100, 4, 1), "joint_right": ("gripper", 500, 100, 4, 1),
-}
+# defaults: joint dynamics + actuator classes
 robot_def = root.find("default/default[@class='robot']")
-robot_def.set("class", "robot")
-# joint base defaults
-jd = ET.SubElement(robot_def, "joint"); jd.set("armature", "0.01"); jd.set("frictionloss", "0.2")
-for cls, (fr, kp, kv, dmp) in {
-    "rs06": (36, 900, 60, 5), "rs00": (14, 120, 10, 2), "gripper": (500, 100, 4, 1)}.items():
-    dc = ET.SubElement(robot_def, "default"); dc.set("class", cls)
-    j = ET.SubElement(dc, "joint"); j.set("damping", str(dmp))
-    p = ET.SubElement(dc, "position"); p.set("kp", str(kp)); p.set("kv", str(kv))
-    p.set("forcerange", f"-{fr} {fr}")
+ET.SubElement(robot_def, "joint", {"armature": "0.01", "frictionloss": "0.2"})
+for cls, (fr, kp, kv, dmp) in {"rs06": (36, 900, 60, 5), "rs00": (14, 120, 10, 2),
+                               "gripper": (500, 100, 4, 1)}.items():
+    dc = ET.SubElement(robot_def, "default", {"class": cls})
+    ET.SubElement(dc, "joint", {"damping": str(dmp)})
+    ET.SubElement(dc, "position", {"kp": str(kp), "kv": str(kv), "forcerange": f"-{fr} {fr}"})
 
-# 7. assign joint + actuator classes
+CLASS = {"joint1": "rs06", "joint2": "rs06", "joint3": "rs06", "joint4": "rs00",
+         "joint5": "rs00", "joint6": "rs00", "joint_left": "gripper", "joint_right": "gripper"}
 for joint in root.iter("joint"):
-    n = joint.get("name")
-    if n in CLASS:
-        joint.set("class", CLASS[n][0])
+    if joint.get("name") in CLASS:
+        joint.set("class", CLASS[joint.get("name")])
 act = root.find("actuator")
 for m in list(act):
     act.remove(m)
-for n, (cls, *_ ) in CLASS.items():
-    p = ET.SubElement(act, "position"); p.set("class", cls); p.set("name", n); p.set("joint", n)
+for n, cls in CLASS.items():
+    ET.SubElement(act, "position", {"class": cls, "name": n, "joint": n})
 
-# 8. keyframe
 kf = ET.SubElement(root, "keyframe")
 ET.SubElement(kf, "key", {"name": "home", "qpos": "0 " * 7 + "0", "ctrl": "0 " * 7 + "0"})
-ET.SubElement(kf, "key", {"name": "raised",
-    "qpos": "0 -0.7 -1.1 0 0 0 0 0", "ctrl": "0 -0.7 -1.1 0 0 0 0 0"})
+ET.SubElement(kf, "key", {"name": "raised", "qpos": "0 -0.7 -1.1 0 0 0 0 0",
+              "ctrl": "0 -0.7 -1.1 0 0 0 0 0"})
 
-# drop the stray second <visual> the tool appends
-vis = root.findall("visual")
-for v in vis[1:]:
+for v in root.findall("visual")[1:]:
     root.remove(v)
 
-# strip scene-only assets (they belong in scene.xml, not the model)
-asset = root.find("asset")
-for el in list(asset):
-    name = el.get("name", "")
-    if el.tag == "texture" and el.get("type") == "skybox":
-        asset.remove(el)
-    elif name == "groundplane":
-        asset.remove(el)
-
 ET.indent(tree, space="  ")
-out = HERE / "rebot_devarm.xml"
-tree.write(out, encoding="unicode", xml_declaration=False)
-print("WROTE", out)
+tree.write(HERE / "rebot_devarm.xml", encoding="unicode", xml_declaration=False)
+print("WROTE rebot_devarm.xml,", sum(len(v) for v in link_visuals.values()), "coloured visual geoms")
