@@ -65,14 +65,14 @@
                       <inertial pos="-0.00218008703135955 0.0187090355934181 0.00932188568692145" mass="0.0752" diaginertia="1.09877964176176e-05 9.50146036720166e-06 9.30779991911125e-06" />
                       <joint name="joint_left" type="slide" range="0 0.05" axis="0 0 1" class="gripper" />
                       <geom type="mesh" class="collision" name="gripper_left_collision_gripper_left_convex" mesh="gripper_left_convex" />
-                      <geom type="mesh" class="visual" material="alum" mesh="pla_left" pos="0 0 0" quat="1 0 0 0" />
+                      <geom type="mesh" class="visual" material="black" mesh="pla_left" pos="0 0 0" quat="1 0 0 0" />
                       <geom type="mesh" class="visual" material="alum" mesh="cnc_left" pos="0 0 0" quat="1 0 0 0" />
                     </body>
                     <body name="gripper_right" pos="-0.041939 7.3385E-05 0" quat="0.5 -0.5 -0.5 -0.5">
                       <inertial pos="0.00218008703135955 -0.018709035593418 0.00932188568692151" mass="0.0752" diaginertia="1.09877964176176e-05 9.50146036720166e-06 9.30779991911125e-06" />
                       <joint name="joint_right" type="slide" range="0 0.0715" axis="0 0 1" class="gripper" />
                       <geom type="mesh" class="collision" name="gripper_right_collision_gripper_right_convex" mesh="gripper_right_convex" />
-                      <geom type="mesh" class="visual" material="alum" mesh="pla_right" pos="0 0 0" quat="1 0 0 0" />
+                      <geom type="mesh" class="visual" material="black" mesh="pla_right" pos="0 0 0" quat="1 0 0 0" />
                       <geom type="mesh" class="visual" material="alum" mesh="cnc_right" pos="0 0 0" quat="1 0 0 0" />
                     </body>
                     <geom type="mesh" class="visual" material="lime" mesh="pla7_green" pos="0 0 0" quat="1 0 0 0" />

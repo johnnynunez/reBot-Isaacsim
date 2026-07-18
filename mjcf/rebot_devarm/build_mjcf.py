@@ -29,11 +29,15 @@ URDF = HERE.parents[1] / "urdf/00-arm-rs_asm-v3/urdf/00-arm-rs_asm-v3.urdf"
 
 def colour_of(mesh_file: str) -> str:
     n = mesh_file.lower()
-    if "_green" in n or n.startswith("gripper_left") or n.startswith("gripper_right"):
+    # gripper fingers (gripper_left/right jaws + their pla pads) are black
+    if n.startswith("gripper_left") or n.startswith("gripper_right") \
+       or n.startswith("pla_left") or n.startswith("pla_right"):
+        return "black"
+    if "_green" in n:              # arm accent covers
         return "lime"
     if "motor" in n or "_black" in n:
         return "black"
-    return "alum"
+    return "alum"                 # cnc brackets, links, base, gripper_end mount
 
 
 def rpy_to_quat(r, p, y):
