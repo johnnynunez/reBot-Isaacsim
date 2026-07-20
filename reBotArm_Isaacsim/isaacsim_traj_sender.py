@@ -77,7 +77,7 @@ DEFAULT_TRAJ_DURATION = 3.0         # 默认轨迹时长（秒）
 DEFAULT_SPEED_SCALE = 1.0           # 速度比例：1.0 = 使用默认时长，>1 更快
 DEFAULT_JOINT_TOLERANCE = 1e-3      # 直发 q 模式下，目标与当前差距过小时跳过规划
 DEFAULT_NULL_GAIN = 0.05            # CLIK 零空间梯度增益（关节限位避让）
-DEFAULT_GRIPPER_MAX_OPENING_M = 0.045  # 夹爪完全打开时每指的滑动距离（米），与 USD physics.usda 的 upperLimit 对齐
+DEFAULT_GRIPPER_MAX_OPENING_M = 0.045  # 夹爪完全打开时每指的滑动距离（米）；保守值，小于 USD upperLimit（左 0.05 / 右 0.0715）
 
 _running = True
 
@@ -331,8 +331,9 @@ class TrajSender:
             self.gripper = gripper_m
             # 立即广播一帧；既解决"等下次规划才生效"的延迟，也让"单独
             # 更新夹爪"的命令在不动 arm 时也能动 gripper。
-            # 取上一次 joint 目标 q 的前 6 个当作静止参考（不触发任何臂规划）。
-            self._send(self.q_prev[:ARM_JOINT_COUNT], gripper_m)
+            # 取上一次 joint 目标 q 的前 6 个当作静止参考（不触发任何臂规划）；
+            # q_prev 是电机坐标，广播前必须取反成仿真坐标（q_sim = -q_motor）。
+            self._send(-self.q_prev[:ARM_JOINT_COUNT], gripper_m)
             return (
                 f"夹爪比例已更新为 {ratio:.2f} "
                 f"→ {gripper_m * 1000:.1f} mm（已立即广播）"

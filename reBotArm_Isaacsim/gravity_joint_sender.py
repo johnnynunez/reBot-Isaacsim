@@ -38,8 +38,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 _THIRD_PARTY = REPO_ROOT / "third_party" / "reBotArm_control_py"
 sys.path.insert(0, str(_THIRD_PARTY))
 
-from reBotArm_control_py.actuator import RebotArm
-from reBotArm_control_py.dynamics import compute_generalized_gravity
+from reBotArm_control_py.actuator import RebotArm  # noqa: E402
+from reBotArm_control_py.dynamics import compute_generalized_gravity  # noqa: E402
 
 ARM_JOINT_COUNT = 6
 DEFAULT_HOST = "127.0.0.1"
@@ -105,7 +105,9 @@ class GravityCompensationSender:
                 f"arm 组关节数不足 {ARM_JOINT_COUNT}，当前仅 {q0.shape[0]} 个 / "
                 f"arm joint count is less than {ARM_JOINT_COUNT}, only {q0.shape[0]} available"
             )
-        self.latest_q[:] = q0[:ARM_JOINT_COUNT]
+        # latest_q 保存仿真坐标（q_sim = -q_motor），latest_q_raw 保存电机坐标。
+        # latest_q holds the sim frame (q_sim = -q_motor); latest_q_raw holds the motor frame.
+        self.latest_q[:] = -q0[:ARM_JOINT_COUNT]
         self.latest_q_raw[:] = q0[:ARM_JOINT_COUNT]
         if self.rebotarm.has_gripper:
             gripper_q0 = self.rebotarm.gripper.get_positions(request_feedback=True)

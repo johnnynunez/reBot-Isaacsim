@@ -218,10 +218,17 @@ JSON sobre UDP en `127.0.0.1:5005`.
 | `sequence` | int | Número de secuencia monótonamente creciente |
 | `timestamp` | float | Marca de tiempo Unix (segundos) |
 | `joint_positions` | float[6] | Ángulos de las 6 primeras articulaciones (rad) |
-| `gripper_position` | float | Posición de la pinza (m); el emisor la convierte mediante `GRIPPER_POSITION_SCALE=0.03` |
+| `gripper_position` | float | Objetivo de posición de los dedos de la pinza (m); cada emisor lo calcula con su propia conversión (véase más abajo) |
 
 **Cadena de control de la pinza:**
-emisor `gripper_q` → `gripper_position = -gripper_q × 0.03` → receptor `× 0.01` → objetivo de posición de las dos articulaciones
+El receptor aplica el `gripper_position` recibido directamente como objetivo de posición de las dos articulaciones prismáticas de los dedos, recortado por dedo a `[0, límite superior]` (límites superiores del USD: `joint_left` 0,05 m, `joint_right` 0,0715 m). El receptor no aplica ninguna escala adicional. Los emisores convierten su entrada a `gripper_position` de la siguiente manera:
+
+| Emisor | Conversión a `gripper_position` (m) |
+|------|------|
+| `gravity_joint_sender` | `gripper_q × 0.03` (`GRIPPER_POSITION_SCALE = 0.03`) |
+| `joint_reader_sender` | `gripper_q × 0.007` (`GRIPPER_POSITION_SCALE = 0.007`) |
+| `isaacsim_traj_sender` | `ratio × 0.045` (entrada `gripper <0–1>`, recortado a 0,045 m) |
+| `isaacsim_ik_sender` | `ratio ∈ [0, 1]` sin convertir, enviado como metros, de modo que cualquier ratio ≥ el límite superior de un dedo abre ese dedo por completo |
 
 ## Parámetros de configuración
 
@@ -242,7 +249,6 @@ emisor `gripper_q` → `gripper_position = -gripper_q × 0.03` → receptor `× 
 | `ARM_JOINT_COUNT` | 6 | Número de articulaciones |
 | `DEFAULT_PORT` | 5005 | Puerto UDP |
 | `DEFAULT_RENDER_HZ` | 120.0 | Frecuencia de renderizado de la simulación (Hz) |
-| `GRIPPER_POSITION_SCALE` | 0.01 | Factor de escala adicional de la posición de la pinza |
 | `ROBOT_PRIM_PATH` | `/World/reBotArm` | Ruta del Prim del robot dentro de Isaac Sim |
 | `ASSET_RELATIVE_PATH` | `usd/RS-rebot-dev-arm/00-arm-rs_asm-v3.usda` | Ruta del asset USD relativa a la raíz del repositorio |
 

@@ -37,7 +37,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 _THIRD_PARTY = REPO_ROOT / "third_party" / "reBotArm_control_py"
 sys.path.insert(0, str(_THIRD_PARTY))
 
-from reBotArm_control_py.actuator import RebotArm
+from reBotArm_control_py.actuator import RebotArm  # noqa: E402
 
 ARM_JOINT_COUNT = 6
 DEFAULT_HOST = "127.0.0.1"
