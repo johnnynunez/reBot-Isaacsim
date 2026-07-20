@@ -9,9 +9,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from dynamic_evidence_contract import dynamic_evidence_problems
+
 PKG = Path(__file__).resolve().parent.parent
 EV = PKG / "evidence"
-OLD_EV = Path("/home/spark/Projects/isaac/00-arm-rs_asm-v3-plus/evidence")
+OLD_EV = EV / "baselines"
 
 JOINTS = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint_left", "joint_right"]
 GAINS = {
@@ -22,7 +24,11 @@ GAINS = {
 
 
 def load(p):
-    return json.load(open(p)) if Path(p).exists() else None
+    path = Path(p)
+    if not path.is_file():
+        raise FileNotFoundError(f"required evidence is missing: {path}")
+    with path.open(encoding="utf-8") as stream:
+        return json.load(stream)
 
 
 def err(m):
@@ -67,24 +73,21 @@ def sha256_asset_package(root_asset):
 
 
 def validate_dynamic_evidence(report, expected_engine):
-    expected_asset = "usd/RS-rebot-dev-arm/00-arm-rs_asm-v3.usda"
-    if not report or not report.get("passed"):
-        raise RuntimeError(f"missing or failing {expected_engine} dynamic evidence")
-    if report.get("asset") != expected_asset:
-        raise RuntimeError(f"unexpected {expected_engine} asset: {report.get('asset')}")
-    if report.get("requested_engine") != expected_engine:
-        raise RuntimeError(f"unexpected requested engine in {expected_engine} evidence")
-    if report.get("active_engine") != expected_engine:
-        raise RuntimeError(f"unexpected active engine in {expected_engine} evidence")
-    if report.get("physics_timestep_s") != 0.002 or report.get("device") != "cuda:0":
-        raise RuntimeError(f"unexpected dt/device in {expected_engine} evidence")
-    if report.get("dof_position_units") != ["rad"] * 6 + ["m"] * 2:
-        raise RuntimeError(f"unexpected position units in {expected_engine} evidence")
-    if not report.get("settling_converged"):
-        raise RuntimeError(f"settling did not converge in {expected_engine} evidence")
+    problems = dynamic_evidence_problems(report, expected_engine)
+    if report.get("validation_errors") != problems:
+        raise RuntimeError(
+            f"{expected_engine} stored validation errors do not match recomputed errors: {problems}"
+        )
+    if report.get("passed") is not (not problems):
+        raise RuntimeError(f"{expected_engine} passed flag contradicts recomputed evidence")
+    if problems:
+        raise RuntimeError(f"failing {expected_engine} dynamic evidence: {problems}")
     validator = PKG / "scripts/validate_dynamic_physics.py"
     if report.get("validator_sha256") != sha256_file(validator):
         raise RuntimeError(f"stale {expected_engine} evidence: validator hash mismatch")
+    contract = PKG / "scripts/dynamic_evidence_contract.py"
+    if report.get("contract_sha256") != sha256_file(contract):
+        raise RuntimeError(f"stale {expected_engine} evidence: contract hash mismatch")
     asset = PKG / "00-arm-rs_asm-v3.usda"
     if report.get("asset_package_sha256") != sha256_asset_package(asset):
         raise RuntimeError(f"stale {expected_engine} evidence: asset hash mismatch")
@@ -92,8 +95,6 @@ def validate_dynamic_evidence(report, expected_engine):
         raise RuntimeError(f"failed physics-step contract in {expected_engine} evidence")
 
 
-if dynamic_newton is None or dynamic_physx is None:
-    raise RuntimeError("missing Newton/PhysX dynamic evidence")
 validate_dynamic_evidence(dynamic_newton, "newton")
 validate_dynamic_evidence(dynamic_physx, "physx")
 if dynamic_newton["isaac_sim_version"] != dynamic_physx["isaac_sim_version"]:
@@ -198,10 +199,11 @@ A("application frames: each sample follows one `SimulationManager.step(steps=1)`
 A("physics-step counter increment, and backend Fabric synchronization (explicit for Newton). It verifies")
 A("runtime ingestion/readback of effort and velocity limits, one composed scene, convergence before")
 A("measurement, bounded error/excursion over the complete hold window, a short passive response, and")
-A("limits at every discrete physics step advanced by the harness. It does **not** observe solver-internal")
+A("limits at every discrete physics step in the measured phases. It does **not** observe solver-internal")
 A("substeps or claim torque/velocity saturation enforcement, hard-stop enforcement, or quantitative")
 A("Newton/PhysX trajectory parity.")
-A("Evidence generation records and checks the exact validator and USD-package SHA-256 values.")
+A("Evidence generation records and checks the exact validator, shared contract, and USD-package SHA-256")
+A("values.")
 A("")
 A("From the repository root, with `ISAACSIM_PATH` set to the Isaac Sim release directory:")
 A("")
@@ -218,9 +220,10 @@ A("```")
 A("")
 A("Evidence: `evidence/gt_pj_new_newton.json`, `evidence/gt_pj_new_physx.json`, `evidence/gravity_droop.json`,")
 A("`evidence/physics_fidelity_validation.json`, `evidence/physics_fidelity_dynamic_newton.json`,")
-A("and `evidence/physics_fidelity_dynamic_physx.json`. Harnesses:")
+A("`evidence/physics_fidelity_dynamic_physx.json`, and `evidence/baselines/`. Harnesses:")
 A("`scripts/gaintuner_perjoint_361.py`, `scripts/run_full_matrix.sh`,")
-A("`scripts/validate_physics_fidelity.py`, and `scripts/validate_dynamic_physics.py`.")
+A("`scripts/validate_physics_fidelity.py`, `scripts/validate_dynamic_physics.py`,")
+A("and `scripts/dynamic_evidence_contract.py`.")
 
 out = PKG / "VALIDATION.md"
 out.write_text("\n".join(lines) + "\n")

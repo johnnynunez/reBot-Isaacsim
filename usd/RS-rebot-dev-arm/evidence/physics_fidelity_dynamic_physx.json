@@ -1,8 +1,9 @@
 {
   "asset": "usd/RS-rebot-dev-arm/00-arm-rs_asm-v3.usda",
   "asset_package_sha256": "dda7d2f1946f31ff094b23edafe78c7631caf41b4ee5d5f2fadbd10968df9558",
-  "validator_sha256": "11bf7043113d2b2a0f51457da7b06c409bda037ef2f1e462d088cefc9576d90d",
-  "generated_at_utc": "2026-07-20T15:41:46.762142+00:00",
+  "validator_sha256": "222aca813235f044f5abd6d0d8f572d211e26f719188c0e9585b29fe37d70c82",
+  "contract_sha256": "002f2f7a49e548646632b250b1dbb7a6fb31919ffac07bd5e836be3b35597883",
+  "generated_at_utc": "2026-07-20T16:19:38.881808+00:00",
   "isaac_sim_version": "6.0.1",
   "physics_timestep_s": 0.002,
   "device": "cuda:0",
@@ -86,7 +87,7 @@
   "physics_scenes_after_setup": [
     "/PhysicsScene"
   ],
-  "physics_step_validation": "readback after every discrete physics step advanced by the harness; solver-internal substeps and hard-stop enforcement are not tested",
+  "physics_step_validation": "readback after every discrete physics step in the measured phases; solver-internal substeps and hard-stop enforcement are not tested",
   "physics_steps_advanced": 2782,
   "expected_physics_steps": 2782,
   "simulation_time_advanced_s": 5.564,
@@ -166,6 +167,7 @@
     0.02,
     0.02
   ],
+  "ramp_physics_steps": 2000,
   "hold_settle_physics_steps": 272,
   "settle_max_physics_steps": 10000,
   "settle_consecutive_steps_required": 100,
@@ -302,5 +304,6 @@
     -1.0944814682006836
   ],
   "passive_motion_joint3_rad": 0.004890084266662598,
+  "validation_errors": [],
   "passed": true
 }

@@ -68,10 +68,11 @@ application frames: each sample follows one `SimulationManager.step(steps=1)` ca
 physics-step counter increment, and backend Fabric synchronization (explicit for Newton). It verifies
 runtime ingestion/readback of effort and velocity limits, one composed scene, convergence before
 measurement, bounded error/excursion over the complete hold window, a short passive response, and
-limits at every discrete physics step advanced by the harness. It does **not** observe solver-internal
+limits at every discrete physics step in the measured phases. It does **not** observe solver-internal
 substeps or claim torque/velocity saturation enforcement, hard-stop enforcement, or quantitative
 Newton/PhysX trajectory parity.
-Evidence generation records and checks the exact validator and USD-package SHA-256 values.
+Evidence generation records and checks the exact validator, shared contract, and USD-package SHA-256
+values.
 
 From the repository root, with `ISAACSIM_PATH` set to the Isaac Sim release directory:
 
@@ -88,6 +89,7 @@ $ISAACSIM_PATH/python.sh usd/RS-rebot-dev-arm/scripts/validate_dynamic_physics.p
 
 Evidence: `evidence/gt_pj_new_newton.json`, `evidence/gt_pj_new_physx.json`, `evidence/gravity_droop.json`,
 `evidence/physics_fidelity_validation.json`, `evidence/physics_fidelity_dynamic_newton.json`,
-and `evidence/physics_fidelity_dynamic_physx.json`. Harnesses:
+`evidence/physics_fidelity_dynamic_physx.json`, and `evidence/baselines/`. Harnesses:
 `scripts/gaintuner_perjoint_361.py`, `scripts/run_full_matrix.sh`,
-`scripts/validate_physics_fidelity.py`, and `scripts/validate_dynamic_physics.py`.
+`scripts/validate_physics_fidelity.py`, `scripts/validate_dynamic_physics.py`,
+and `scripts/dynamic_evidence_contract.py`.

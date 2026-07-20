@@ -20,6 +20,27 @@ from pathlib import Path
 import sys
 import traceback
 
+from dynamic_evidence_contract import (
+    DOF_NAMES,
+    HOLD_ERROR_TOLERANCES,
+    HOLD_EXCURSION_TOLERANCES,
+    HOLD_MEASUREMENT_PHYSICS_STEPS,
+    LOWER_POSITION_LIMITS,
+    PASSIVE_PROBE_PHYSICS_STEPS,
+    PHYSICS_TIMESTEP_S,
+    POSITION_LIMIT_TOLERANCES,
+    RAMP_PHYSICS_STEPS,
+    REST_VELOCITY_TOLERANCES,
+    SETTLE_CONSECUTIVE_STEPS_REQUIRED,
+    SETTLE_ERROR_TOLERANCES,
+    SETTLE_MAX_PHYSICS_STEPS,
+    TARGET_POSITIONS,
+    UPPER_POSITION_LIMITS,
+    EXPECTED_MAX_EFFORTS,
+    EXPECTED_MAX_VELOCITIES,
+    dynamic_evidence_problems,
+)
+
 if len(sys.argv) != 4:
     raise SystemExit(
         "usage: validate_dynamic_physics.py ASSET.usda ENGINE OUTPUT.json"
@@ -27,9 +48,17 @@ if len(sys.argv) != 4:
 
 asset_path = Path(sys.argv[1]).resolve()
 engine = sys.argv[2]
-output_path = Path(sys.argv[3])
+output_path = Path(sys.argv[3]).resolve()
+if output_path == asset_path:
+    raise SystemExit("OUTPUT.json must not overwrite the asset")
+output_path.parent.mkdir(parents=True, exist_ok=True)
+output_path.unlink(missing_ok=True)
+temporary_output_path = output_path.with_name(f".{output_path.name}.{os.getpid()}.tmp")
+temporary_output_path.unlink(missing_ok=True)
 if engine not in {"newton", "physx"}:
     raise SystemExit("ENGINE must be newton or physx")
+if not asset_path.is_file():
+    raise SystemExit(f"asset does not exist: {asset_path}")
 
 from isaacsim import SimulationApp  # noqa: E402
 
@@ -86,7 +115,7 @@ try:
     from isaacsim.core.simulation_manager import SimulationManager
     from isaacsim.core.version import get_version
 
-    timestep = 0.002
+    timestep = PHYSICS_TIMESTEP_S
     device = "cuda:0"
     SimulationManager.switch_physics_engine(engine)
     stage_utils.open_stage(str(asset_path))
@@ -127,37 +156,24 @@ try:
         fabric_sync_mode = "explicit Newton stage update_fabric()"
 
     names = list(articulation.dof_names)
-    expected_names = [
-        "joint1",
-        "joint2",
-        "joint3",
-        "joint4",
-        "joint5",
-        "joint6",
-        "joint_left",
-        "joint_right",
-    ]
+    expected_names = list(DOF_NAMES)
     if names != expected_names:
         raise RuntimeError(f"unexpected DOF order: {names}")
 
     max_efforts = articulation.get_dof_max_efforts().numpy()[0].copy()
     max_velocities = articulation.get_dof_max_velocities().numpy()[0].copy()
-    expected_max_efforts = np.asarray(
-        [36.0, 36.0, 36.0, 14.0, 14.0, 14.0, 500.0, 500.0]
-    )
-    expected_max_velocities = np.asarray(
-        [50.0, 50.0, 50.0, 40.0, 40.0, 40.0, 10.0, 10.0]
-    )
-    lower_limits = np.asarray([-2.8, -3.14, -3.14, -1.79, -1.57, -3.14, 0.0, 0.0])
-    upper_limits = np.asarray([2.8, 0.0, 0.0, 1.69, 1.57, 3.14, 0.05, 0.0715])
-    position_tolerances = np.asarray([1e-4] * 6 + [1e-5] * 2)
-    hold_error_tolerances = np.asarray([0.01] * 6 + [5e-4] * 2)
-    hold_excursion_tolerances = np.asarray([0.01] * 6 + [5e-4] * 2)
-    settle_error_tolerances = np.asarray([5e-3] * 6 + [2.5e-4] * 2)
-    rest_velocity_tolerances = np.asarray([0.01] * 6 + [1e-3] * 2)
+    expected_max_efforts = np.asarray(EXPECTED_MAX_EFFORTS)
+    expected_max_velocities = np.asarray(EXPECTED_MAX_VELOCITIES)
+    lower_limits = np.asarray(LOWER_POSITION_LIMITS)
+    upper_limits = np.asarray(UPPER_POSITION_LIMITS)
+    position_tolerances = np.asarray(POSITION_LIMIT_TOLERANCES)
+    hold_error_tolerances = np.asarray(HOLD_ERROR_TOLERANCES)
+    hold_excursion_tolerances = np.asarray(HOLD_EXCURSION_TOLERANCES)
+    settle_error_tolerances = np.asarray(SETTLE_ERROR_TOLERANCES)
+    rest_velocity_tolerances = np.asarray(REST_VELOCITY_TOLERANCES)
 
     start = articulation.get_dof_positions().numpy()[0].copy()
-    target = np.asarray([0.0, -0.7, -1.1, 0.0, 0.0, 0.0, 0.02, 0.02])
+    target = np.asarray(TARGET_POSITIONS)
     observed_positions = [start.copy()]
 
     def advance_one_physics_step(position):
@@ -189,13 +205,13 @@ try:
     physics_steps_start = SimulationManager.get_num_physics_steps()
     simulation_time_start = SimulationManager.get_simulation_time()
 
-    ramp_steps = 2000
+    ramp_steps = RAMP_PHYSICS_STEPS
     for index in range(ramp_steps):
         alpha = (index + 1) / ramp_steps
         advance_one_physics_step(start * (1.0 - alpha) + target * alpha)
 
-    settle_max_steps = 10000
-    settle_consecutive_steps_required = 100
+    settle_max_steps = SETTLE_MAX_PHYSICS_STEPS
+    settle_consecutive_steps_required = SETTLE_CONSECUTIVE_STEPS_REQUIRED
     settle_consecutive_steps = 0
     hold_settle_steps = 0
     for hold_settle_steps in range(1, settle_max_steps + 1):
@@ -211,7 +227,7 @@ try:
     settling_converged = settle_consecutive_steps >= settle_consecutive_steps_required
     hold_start = articulation.get_dof_positions().numpy()[0].copy()
 
-    hold_measurement_steps = 500
+    hold_measurement_steps = HOLD_MEASUREMENT_PHYSICS_STEPS
     hold_samples = [hold_start.copy()]
     for _ in range(hold_measurement_steps):
         hold_samples.append(advance_one_physics_step(target))
@@ -231,7 +247,7 @@ try:
     articulation.set_dof_gains(kp_array, kd_array)
     passive_start = articulation.get_dof_positions().numpy()[0].copy()
     passive_start_velocity = articulation.get_dof_velocities().numpy()[0].copy()
-    passive_probe_steps = 10
+    passive_probe_steps = PASSIVE_PROBE_PHYSICS_STEPS
     passive_probe_step_start = SimulationManager.get_num_physics_steps()
     passive_probe_time_start = SimulationManager.get_simulation_time()
     passive_trace = [passive_start.copy()]
@@ -240,7 +256,7 @@ try:
     passive_end = passive_trace[-1].copy()
     passive_probe_step_end = SimulationManager.get_num_physics_steps()
     passive_probe_time_end = SimulationManager.get_simulation_time()
-    passive_motion = float(passive_end[joint3] - passive_start[joint3])
+    passive_motion = float(passive_end[joint3]) - float(passive_start[joint3])
 
     physics_steps_end = SimulationManager.get_num_physics_steps()
     simulation_time_end = SimulationManager.get_simulation_time()
@@ -285,6 +301,7 @@ try:
         "asset": asset_label,
         "asset_package_sha256": sha256_asset_package(asset_path),
         "validator_sha256": sha256_file(Path(__file__).resolve()),
+        "contract_sha256": sha256_file(Path(__file__).with_name("dynamic_evidence_contract.py")),
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "isaac_sim_version": get_version()[0],
         "physics_timestep_s": timestep,
@@ -303,7 +320,7 @@ try:
         "physics_scenes_before_setup": scenes_before,
         "physics_scenes_after_setup": scenes_after,
         "physics_step_validation": (
-            "readback after every discrete physics step advanced by the harness; "
+            "readback after every discrete physics step in the measured phases; "
             "solver-internal substeps and hard-stop enforcement are not tested"
         ),
         "physics_steps_advanced": physics_steps_advanced,
@@ -327,6 +344,7 @@ try:
         "positions_within_limits": positions_within_limits,
         "start_positions": start.tolist(),
         "target_positions": target.tolist(),
+        "ramp_physics_steps": ramp_steps,
         "hold_settle_physics_steps": hold_settle_steps,
         "settle_max_physics_steps": settle_max_steps,
         "settle_consecutive_steps_required": settle_consecutive_steps_required,
@@ -354,33 +372,21 @@ try:
             float(position[joint3]) for position in passive_trace
         ],
         "passive_motion_joint3_rad": passive_motion,
-        "passed": bool(
-            active_engine == engine
-            and scenes_before == ["/PhysicsScene"]
-            and scenes_after == ["/PhysicsScene"]
-            and np.allclose(max_efforts, expected_max_efforts, rtol=0.0, atol=1e-4)
-            and np.allclose(
-                max_velocities, expected_max_velocities, rtol=0.0, atol=1e-4
-            )
-            and np.all(hold_error_by_dof < hold_error_tolerances)
-            and np.all(hold_excursion_by_dof < hold_excursion_tolerances)
-            and settling_converged
-            and positions_within_limits
-            and np.all(np.abs(passive_start_velocity) < rest_velocity_tolerances)
-            and passive_motion > 1e-5
-            and physics_step_contract_passed
-        ),
     }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as stream:
+    validation_errors = dynamic_evidence_problems(output, engine)
+    output["validation_errors"] = validation_errors
+    output["passed"] = not validation_errors
+    with temporary_output_path.open("w", encoding="utf-8") as stream:
         json.dump(output, stream, indent=2)
         stream.write("\n")
+    os.replace(temporary_output_path, output_path)
     print(json.dumps(output, indent=2), flush=True)
     exit_code = 0 if output["passed"] else 1
 except BaseException:
     traceback.print_exc()
     raise
 finally:
+    temporary_output_path.unlink(missing_ok=True)
     try:
         if app_utils is not None:
             app_utils.stop()
