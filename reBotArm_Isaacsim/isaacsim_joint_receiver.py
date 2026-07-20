@@ -8,7 +8,8 @@ Isaac Sim arm + ground + UDP joint-angle receiver.
 1. 使用 Isaac 官方 Python 运行时启动 `SimulationApp`。
 2. 创建地面并加载 `usd/RS-rebot-dev-arm` 机械臂资产。
 3. 通过 UDP 接收真实机械臂前 6 个关节角，并实时同步到 Isaac Sim。
-4. 将收到的夹爪角度乘以 `0.01` 后，作为双关节位置目标同步到仿真夹爪。
+4. 将收到的 `gripper_position`（米）裁剪到各指关节上限后，作为双关节位置目标
+   同步到仿真夹爪。
 
 推荐运行方式：
 - 使用 Isaac 官方 `python.sh` 启动本脚本。
@@ -19,8 +20,8 @@ Overview:
 2. Create the ground plane and load the `usd/RS-rebot-dev-arm` robot asset.
 3. Receive the first 6 joint angles from the physical arm over UDP and mirror
    them in Isaac Sim in real time.
-4. Multiply the received gripper angle by `0.01` and use the result as a
-   position target for the simulated two-joint gripper.
+4. Clip the received `gripper_position` (meters) to each finger joint's upper
+   limit and use it as the position target for the simulated two-joint gripper.
 
 Recommended usage:
 - Launch this script with the official Isaac `python.sh` runner.
@@ -30,14 +31,13 @@ Recommended usage:
 from __future__ import annotations
 
 import json
+import os
 import signal
 import socket
 import struct
-import sys
 import time
 import zlib
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -75,7 +75,7 @@ DISTANT_LIGHT_PRIM_PATH = "/World/DistantLight"
 DEFAULT_CAMERA_EYE = np.array([0.595, 0.532, 0.636], dtype=np.float64)
 DEFAULT_CAMERA_TARGET = np.array([0.0, 0.0, 0.35], dtype=np.float64)
 GRIPPER_JOINT_NAMES = ("joint_left", "joint_right")
-GRIPPER_POSITION_SCALE = 0.01
+TEXTURE_SYMLINK_ENV = "REBOT_TEXTURE_SYMLINK"
 
 _running = True
 
@@ -238,6 +238,61 @@ class IsaacJointMirror:
             camera_prim_path="/OmniverseKit_Persp",
         )
 
+    def _ensure_texture_search_path(self) -> None:
+        """处理资产贴图的历史查找路径 / handle the asset's legacy texture lookup path.
+
+        部分贴图引用从导出时的历史路径
+        `~/reBotArm_control_py/config/RS-rebot-dev-arm/Textures` 解析。本脚本默认
+        不写用户主目录：仅当设置环境变量 `REBOT_TEXTURE_SYMLINK=1` 时才创建（或
+        修复悬空的）指向仓库内 Textures 目录的符号链接；否则只打印明确提示。
+
+        Some texture references resolve via the legacy export-time path above.
+        By default this script never writes into the user's home directory: it
+        only creates (or repairs a dangling) symlink to the in-repo Textures
+        directory when the env var `REBOT_TEXTURE_SYMLINK=1` is set; otherwise
+        it prints an explicit notice.
+        """
+        expected_tex_dir = (
+            Path.home() / "reBotArm_control_py" / "config" / "RS-rebot-dev-arm" / "Textures"
+        )
+        actual_tex_dir = self.asset_path.parent / "Textures"
+        if expected_tex_dir.is_dir():
+            if expected_tex_dir.resolve() != actual_tex_dir.resolve():
+                # 例如用户主目录下存在真实的 reBotArm_control_py 检出 —— 不改动它。
+                # e.g. a real reBotArm_control_py checkout in $HOME — leave it alone.
+                print(
+                    f"[recv-setup] 贴图历史路径已被其它目录占用，保持不动 / "
+                    f"legacy texture path already occupied by another directory, leaving untouched: "
+                    f"{expected_tex_dir}"
+                )
+            return
+
+        if os.environ.get(TEXTURE_SYMLINK_ENV) != "1":
+            print(
+                f"[recv-setup] 贴图历史路径不可用: {expected_tex_dir}\n"
+                f"[recv-setup] 部分贴图可能无法加载。可设置 {TEXTURE_SYMLINK_ENV}=1 让本脚本创建符号链接，"
+                f"或手动执行: ln -s {actual_tex_dir} {expected_tex_dir}\n"
+                f"[recv-setup] legacy texture path unavailable: {expected_tex_dir}\n"
+                f"[recv-setup] some textures may fail to load. Set {TEXTURE_SYMLINK_ENV}=1 to let this "
+                f"script create the symlink, or run: ln -s {actual_tex_dir} {expected_tex_dir}"
+            )
+            return
+
+        if os.path.lexists(expected_tex_dir):
+            if not expected_tex_dir.is_symlink():
+                raise RuntimeError(
+                    f"{expected_tex_dir} 已存在且不是符号链接，拒绝覆盖，请手动处理 / "
+                    f"{expected_tex_dir} exists and is not a symlink; refusing to overwrite, "
+                    f"please resolve it manually"
+                )
+            expected_tex_dir.unlink()  # 悬空或过期的符号链接 / dangling or stale symlink
+        expected_tex_dir.parent.mkdir(parents=True, exist_ok=True)
+        expected_tex_dir.symlink_to(actual_tex_dir)
+        print(
+            f"[recv-setup] 已创建贴图符号链接 / texture symlink created: "
+            f"{expected_tex_dir} -> {actual_tex_dir}"
+        )
+
     def setup_isaac_sim(self) -> None:
         self.sim_app = SimulationApp({"headless": False})
 
@@ -246,12 +301,7 @@ class IsaacJointMirror:
         from isaacsim.core.utils.prims import is_prim_path_valid
         from isaacsim.core.utils.stage import add_reference_to_stage
 
-        # 创建纹理路径符号链接，解决 IsaacSim 从错误路径查找纹理的问题
-        expected_tex_dir = Path.home() / "reBotArm_control_py" / "config" / "RS-rebot-dev-arm" / "Textures"
-        if not expected_tex_dir.exists():
-            expected_tex_dir.parent.mkdir(parents=True, exist_ok=True)
-            actual_tex_dir = self.asset_path.parent / "Textures"
-            expected_tex_dir.symlink_to(actual_tex_dir)
+        self._ensure_texture_search_path()
 
         self.world = World(stage_units_in_meters=1.0)
         self._add_local_ground_plane(self.world)

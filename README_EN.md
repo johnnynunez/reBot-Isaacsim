@@ -23,7 +23,7 @@ This project provides multiple sender components to cover different use cases:
 │                         reBot-Isaacsim                           │
 │                                                                  │
 │   ┌──────────────────────┐        ┌──────────────────────────┐   │
-│   │ Sender (Terminal 1)  │  UDP   │   Receiver (Terminal 2)  │   │
+│   │ Sender (Terminal 2)  │  UDP   │   Receiver (Terminal 1)  │   │
 │   │                      │  JSON  │                          │   │
 │   │ gravity_joint_sender │──────▶ │ isaacsim_joint_receiver  │   │
 │   │                      │ 5005   │                          │   │
@@ -218,10 +218,17 @@ UDP JSON on `127.0.0.1:5005`.
 | `sequence` | int | Monotonically increasing sequence number |
 | `timestamp` | float | Unix timestamp (seconds) |
 | `joint_positions` | float[6] | First 6 joint angles (rad) |
-| `gripper_position` | float | Gripper position (m); the sender converts it via `GRIPPER_POSITION_SCALE=0.03` |
+| `gripper_position` | float | Gripper finger position target (m); each sender computes it with its own mapping (see below) |
 
 **Gripper control chain:**
-sender `gripper_q` → `gripper_position = -gripper_q × 0.03` → receiver `× 0.01` → dual-joint position target
+The receiver applies the received `gripper_position` directly as the position target of both prismatic finger joints, clipped per finger to `[0, upper limit]` (USD upper limits: `joint_left` 0.05 m, `joint_right` 0.0715 m). There is no extra scaling on the receiver side. The senders map their input to `gripper_position` as follows:
+
+| Sender | Mapping to `gripper_position` (m) |
+|------|------|
+| `gravity_joint_sender` | `gripper_q × 0.03` (`GRIPPER_POSITION_SCALE = 0.03`) |
+| `joint_reader_sender` | `gripper_q × 0.007` (`GRIPPER_POSITION_SCALE = 0.007`) |
+| `isaacsim_traj_sender` | `ratio × 0.045` (`gripper <0~1>` input, clipped to 0.045 m) |
+| `isaacsim_ik_sender` | raw `ratio ∈ [0, 1]` sent as meters, so any ratio ≥ a finger's upper limit fully opens that finger |
 
 ## Configuration Parameters
 
@@ -242,7 +249,6 @@ sender `gripper_q` → `gripper_position = -gripper_q × 0.03` → receiver `× 
 | `ARM_JOINT_COUNT` | 6 | Number of joints |
 | `DEFAULT_PORT` | 5005 | UDP port |
 | `DEFAULT_RENDER_HZ` | 120.0 | Simulation render frequency (Hz) |
-| `GRIPPER_POSITION_SCALE` | 0.01 | Additional gripper position scale factor |
 | `ROBOT_PRIM_PATH` | `/World/reBotArm` | Robot Prim path inside Isaac Sim |
 | `ASSET_RELATIVE_PATH` | `usd/RS-rebot-dev-arm/00-arm-rs_asm-v3.usda` | USD asset path relative to the repo root |
 
