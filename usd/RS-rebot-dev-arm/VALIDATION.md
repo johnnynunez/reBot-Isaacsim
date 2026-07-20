@@ -49,12 +49,40 @@ issues are a firmware feedforward (mass/CoM) concern, not a USD drive-gain conce
 - `newton:velocityLimit` and `physxJoint:maxJointVelocity` preserve URDF velocity limits on both backends.
 - Drive `maxForce` preserves URDF effort limits (36 N·m RS-06, 14 N·m RS-00, 500 N gripper).
 - No MDL materials in 0.3.0 output (UsdPreviewSurface only); no legacy `payloads/` transformer package.
-- Post-export edits re-applied by `scripts/prep_asset.py`: drives/limits (July gains), explicit physics scene,
-  gripper convexDecomposition, `newton:selfCollisionEnabled=0`, solver caps nconmax=8192/njmax=32768,
-  and Isaac robot schema.
+- Post-export edits re-applied by `scripts/prep_asset.py`: drives/limits and matching startup target/state,
+  explicit physics scene, gripper convexDecomposition, Newton/PhysX self-collision disabled,
+  solver caps nconmax=8192/njmax=32768, and Isaac robot schema.
+
+## Physics-fidelity smoke — 2026-07-20
+
+The static validator checks all 10 URDF/USD/MJCF inertials, all 8 drive effort limits, both
+Newton and PhysX velocity attributes, startup target/state agreement, articulation schemas,
+self-collision overrides, and standalone PhysicsScene composition.
+
+- Static fidelity: **PASS**, 10 links / 8 joints.
+- Newton dynamic: **PASS**, hold error 2.006e-04 rad, steady drift 3.510e-20 rad.
+- PhysX dynamic: **PASS**, hold error 6.290e-04 rad, steady drift 2.384e-07 rad.
+
+The dynamic smoke runs at dt=0.002 on `cuda:0`. It verifies runtime ingestion/readback of effort and
+velocity limits, one composed scene, steady hold, a short passive-motion response, and that every
+position observed by the smoke remains inside the URDF limits. It does **not** claim torque/velocity
+saturation enforcement, hard-stop enforcement, or quantitative Newton/PhysX trajectory parity.
+
+From the repository root, with `ISAACSIM_PATH` set to the Isaac Sim release directory:
+
+```bash
+$ISAACSIM_PATH/python.sh usd/RS-rebot-dev-arm/scripts/validate_physics_fidelity.py \
+  --json usd/RS-rebot-dev-arm/evidence/physics_fidelity_validation.json
+$ISAACSIM_PATH/python.sh usd/RS-rebot-dev-arm/scripts/validate_dynamic_physics.py \
+  usd/RS-rebot-dev-arm/00-arm-rs_asm-v3.usda newton \
+  usd/RS-rebot-dev-arm/evidence/physics_fidelity_dynamic_newton.json
+$ISAACSIM_PATH/python.sh usd/RS-rebot-dev-arm/scripts/validate_dynamic_physics.py \
+  usd/RS-rebot-dev-arm/00-arm-rs_asm-v3.usda physx \
+  usd/RS-rebot-dev-arm/evidence/physics_fidelity_dynamic_physx.json
+```
 
 Evidence: `evidence/gt_pj_new_newton.json`, `evidence/gt_pj_new_physx.json`, `evidence/gravity_droop.json`,
 `evidence/physics_fidelity_validation.json`, `evidence/physics_fidelity_dynamic_newton.json`,
-`evidence/physics_fidelity_dynamic_physx.json`, and logs alongside. Harnesses:
+and `evidence/physics_fidelity_dynamic_physx.json`. Harnesses:
 `scripts/gaintuner_perjoint_361.py`, `scripts/run_full_matrix.sh`,
 `scripts/validate_physics_fidelity.py`, and `scripts/validate_dynamic_physics.py`.
