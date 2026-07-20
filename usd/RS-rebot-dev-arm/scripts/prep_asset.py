@@ -188,6 +188,14 @@ def author_top_layer() -> None:
 
 
 def verify() -> None:
+    # Unregistered Isaac/PhysX/Newton schemas are filtered by GetAppliedSchemas()
+    # in bare usd-core, so verify the authored list-op directly.
+    def authored_schemas(prim):
+        list_op = prim.GetMetadata("apiSchemas")
+        if not list_op:
+            return []
+        return list(list_op.GetAddedOrExplicitItems())
+
     stage = Usd.Stage.Open(str(TOP))
     drives = {}
     approx = {}
@@ -205,6 +213,7 @@ def verify() -> None:
                     prim.GetAttribute(f"state:{kind}:physics:position").Get(),
                     prim.GetAttribute("newton:velocityLimit").Get(),
                     prim.GetAttribute("physxJoint:maxJointVelocity").Get(),
+                    authored_schemas(prim),
                 )
         a = prim.GetAttribute("physics:approximation")
         if a and a.Get():
@@ -223,6 +232,7 @@ def verify() -> None:
         state,
         newton_velocity,
         physx_velocity,
+        schemas,
     ) in drives.items():
         expected_kind, expected_stiffness, expected_damping = GAINS[name]
         expected_effort, expected_velocity = LIMITS[name]
@@ -240,6 +250,9 @@ def verify() -> None:
         assert math.isclose(
             physx_velocity, expected_velocity, rel_tol=0.0, abs_tol=2e-4
         )
+        assert f"PhysicsDriveAPI:{kind}" in schemas
+        assert f"PhysicsJointStateAPI:{kind}" in schemas
+        assert "PhysxJointAPI" in schemas
     print("composed approximations:", approx)
     assert len(approx) == 10
     assert sum(value == "convexDecomposition" for value in approx.values()) == 3
@@ -250,14 +263,6 @@ def verify() -> None:
         base.GetAttribute("newton:solver:nconmax").Get(),
         base.GetAttribute("newton:solver:njmax").Get(),
     )
-    # The Isaac robot schema is not registered in this bare usd-core install,
-    # so GetAppliedSchemas() filters the tokens out — read authored metadata.
-    def authored_schemas(prim):
-        lo = prim.GetMetadata("apiSchemas")
-        if not lo:
-            return []
-        return list(lo.GetAddedOrExplicitItems())
-
     root = stage.GetPrimAtPath(ROOT)
     print("root schemas (authored):", authored_schemas(root))
     assert "IsaacRobotAPI" in authored_schemas(root)
