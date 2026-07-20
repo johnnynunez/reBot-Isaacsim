@@ -2,6 +2,7 @@
   "asset": "usd/RS-rebot-dev-arm/00-arm-rs_asm-v3.usda",
   "requested_engine": "newton",
   "active_engine": "newton",
+  "device": "cuda:0",
   "articulation_root": "/tn__00armrs_asmv3_hJ6D/Geometry/base_link",
   "dof_names": [
     "joint1",
@@ -53,6 +54,68 @@
     10.0,
     10.0
   ],
+  "dof_lower_limits": [
+    -2.799999952316284,
+    -3.140000104904175,
+    -3.140000104904175,
+    -1.790000081062317,
+    -1.5700000524520874,
+    -3.140000104904175,
+    0.0,
+    0.0
+  ],
+  "dof_upper_limits": [
+    2.799999952316284,
+    0.0,
+    0.0,
+    1.6899999380111694,
+    1.5700000524520874,
+    3.140000104904175,
+    0.05000000074505806,
+    0.07150000333786011
+  ],
+  "limit_tolerance": [
+    0.15,
+    0.15,
+    0.15,
+    0.15,
+    0.15,
+    0.15,
+    0.005,
+    0.005
+  ],
+  "limit_excess_max": {
+    "ramp": [
+      -2.799999952316284,
+      -0.715799868106842,
+      -0.03936639055609703,
+      -1.6897718906402588,
+      -1.5699998140335083,
+      -3.1399998664855957,
+      -0.019999997690320015,
+      -0.02000000700354576
+    ],
+    "hold": [
+      -2.799999952316284,
+      -0.6999897360801697,
+      -1.0754907131195068,
+      -1.6897940635681152,
+      -1.5699999332427979,
+      -3.1399998664855957,
+      -0.019999997690320015,
+      -0.02000000700354576
+    ],
+    "drop": [
+      -2.799999475479126,
+      -0.6999610662460327,
+      0.04459988698363304,
+      -1.6866415739059448,
+      -1.5699996948242188,
+      -3.1399993896484375,
+      -0.019999951124191284,
+      -0.019999945536255836
+    ]
+  },
   "physics_scenes_before_setup": [
     "/PhysicsScene"
   ],
@@ -79,6 +142,8 @@
     0.02,
     0.02
   ],
+  "ramp_sim_seconds": 3.4859999999999998,
+  "hold_sim_seconds": 7.014000000000001,
   "hold_end_positions": [
     -3.723033396238281e-17,
     -0.6999897360801697,
@@ -110,6 +175,26 @@
     0.0,
     0.0
   ],
-  "gravity_drop_joint3_0p1s": 2.583338737487793,
+  "gravity_drop_sim_seconds": 0.6719999999999988,
+  "gravity_drop_joint3_rad": 0.7508174180984497,
+  "joint3_before_drop": -1.0999042987823486,
+  "joint3_after_drop": -0.34908685088157654,
+  "cross_engine_gravity_drop": {
+    "engine": "physx",
+    "evidence": "physics_fidelity_dynamic_physx.json",
+    "gravity_drop_joint3_rad": 1.0993707180023193,
+    "abs_difference_rad": 0.34855329990386963
+  },
+  "criteria": {
+    "active_engine_matches": true,
+    "single_physics_scene": true,
+    "max_efforts_match": true,
+    "max_velocities_match": true,
+    "hold_error_ok": true,
+    "gravity_drop_moved": true,
+    "gravity_drop_plausible": true,
+    "joint3_final_within_limits": true,
+    "limits_respected_all_phases": true
+  },
   "passed": true
 }

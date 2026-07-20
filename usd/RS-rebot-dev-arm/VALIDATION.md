@@ -5,6 +5,7 @@ Runtime: Isaac Sim 6.0.1 aarch64 (GB10), dt=0.002, device=cpu, headless.
 Gain tuner extension: `isaacsim.robot_setup.gain_tuner-3.6.1` (develop 2026-07-17, loaded via isolated --ext-folder override).
 Methodology: per-joint `SnapToLimitsTest` (hold 1.0 s, tolerance 0.01), self-collision OFF,
 hybrid colliders (convexHull arm / convexDecomposition gripper), validated July gains unchanged.
+July-07 baseline columns read the committed snapshots in `evidence/baselines/` (provenance in its README).
 
 ## Per-joint snap-to-limits (max of lower/upper hold error)
 
@@ -19,9 +20,9 @@ hybrid colliders (convexHull arm / convexDecomposition gripper), validated July 
 | joint_left | 100/4 | **pass** 3.8e-08 | **pass** 2.9e-07 | **pass** 4.4e-04 (decomp run) | **pass** 6.1e-04 (decomp run) |
 | joint_right | 100/4 | **pass** 9.7e-08 | **pass** 5.2e-08 | **pass** 2.2e-04 (decomp run) | **pass** 3.0e-04 (decomp run) |
 
-July baseline notes: full-matrix runs (`gt_pj_newasset_*.json`) predate the hybrid-collider fix
+July baseline notes: full-matrix runs (`baselines/gt_pj_newasset_*.json`) predate the hybrid-collider fix
 (joint2/joint4/grippers blocked by convexHull inflation with collision on); the shipped asset's
-gripper baseline is `gt_grip_decomp_*.json` and the final GUI matrix (self-collision OFF) was 8/8 pass.
+gripper baseline is `baselines/gt_grip_decomp_*.json` and the final GUI matrix (self-collision OFF) was 8/8 pass.
 
 ## Gravity-compensation impact of PR#3 masses (current gains, worst in-limit pose)
 
@@ -38,6 +39,20 @@ Conclusion: the mass redistribution changes worst-case gravity torque by <2% and
 ≤0.013 deg on every joint — the validated gains remain correct for simulation. Real-arm gravity-feel
 issues are a firmware feedforward (mass/CoM) concern, not a USD drive-gain concern.
 
+## Hardware spec deviations
+
+The asset follows the vendor URDF verbatim (faithful-to-vendor policy: deviations from the
+published hardware spec are documented here, never silently corrected in the model):
+
+| item | modeled (URDF/USD/MJCF) | hardware spec | note |
+|---|---|---|---|
+| J1 range | ±160.4° (±2.8 rad) | ±150° | model exceeds the spec sheet |
+| J2/J3 range | 180° span ([-180°, 0]) | 220° span | model narrower than spec |
+| J4 range | [-102.6°, +96.8°] | ±90° (vendor URDF and spec agree) | repo URDF is the outlier — recommend reading the firmware limit registers to settle it |
+| wrist velocity (J4–J6) | 40 rad/s | RS-00 no-load 33 rad/s | limit above achievable no-load speed |
+| gripper | 2 independent 500 N prismatic fingers, strokes 0.05 / 0.0715 m | 1 RS-00 driving both fingers via a rack | downstream consumers command both fingers; asymmetric strokes come from CAD |
+| total mass | 6.009 kg | 6.5–6.7 kg | modeled mass ≈8% light |
+
 ## Known deltas vs the uploaded `usd/RS-rebot-dev-arm`
 
 - Masses: PR#3 values baked (link2 1.552, link3 1.252, link4 0.46, link5 0.2012, link6 0.1 kg; total 6.01 kg).
@@ -49,9 +64,11 @@ issues are a firmware feedforward (mass/CoM) concern, not a USD drive-gain conce
 - `newton:velocityLimit` and `physxJoint:maxJointVelocity` preserve URDF velocity limits on both backends.
 - Drive `maxForce` preserves URDF effort limits (36 N·m RS-06, 14 N·m RS-00, 500 N gripper).
 - No MDL materials in 0.3.0 output (UsdPreviewSurface only); no legacy `payloads/` transformer package.
-- Post-export edits re-applied by `scripts/prep_asset.py`: drives/limits (July gains), explicit physics scene,
-  gripper convexDecomposition, `newton:selfCollisionEnabled=0`, solver caps nconmax=8192/njmax=32768,
-  and Isaac robot schema.
+- Post-export edits re-applied by `scripts/prep_asset.py`: drives/limits (July gains, targets from the
+  authored joint-state home pose), Newton joint-limit gains (`newton:*:limitStiffness/limitDamping` — Newton
+  enforces UsdPhysics limits as penalty springs and its defaults are too weak against gravity), explicit
+  physics scene, gripper convexDecomposition, `newton:selfCollisionEnabled=0`, solver caps
+  nconmax=8192/njmax=32768, and Isaac robot schema.
 
 Evidence: `evidence/gt_pj_new_newton.json`, `evidence/gt_pj_new_physx.json`, `evidence/gravity_droop.json`,
 `evidence/physics_fidelity_validation.json`, `evidence/physics_fidelity_dynamic_newton.json`,
